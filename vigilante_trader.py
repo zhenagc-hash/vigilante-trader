@@ -44,7 +44,7 @@ def _consensus_from_counts(trend_counts: dict[str, int]) -> str:
     return max(trend_counts, key=lambda trend: (trend_counts[trend], priorities[trend]))
 
 
-def analyze_with_100_agents(market_chart: dict[str, Any], agent_count: int = 100) -> dict[str, Any]:
+def analyze_with_agents(market_chart: dict[str, Any], agent_count: int = 100) -> dict[str, Any]:
     if agent_count <= 0:
         raise ValueError("agent_count must be positive")
 
@@ -52,6 +52,7 @@ def analyze_with_100_agents(market_chart: dict[str, Any], agent_count: int = 100
     if not prices:
         analyses = [AgentAnalysis(agent_id=i + 1, average_price=0.0, trend="flat") for i in range(agent_count)]
     else:
+        assert prices, "prices must be non-empty in this branch"
         analyses: list[AgentAnalysis] = []
         chunk_size = len(prices) // agent_count
         remainder = len(prices) % agent_count
@@ -84,9 +85,13 @@ def analyze_with_100_agents(market_chart: dict[str, Any], agent_count: int = 100
     }
 
 
+def analyze_with_100_agents(market_chart: dict[str, Any], agent_count: int = 100) -> dict[str, Any]:
+    return analyze_with_agents(market_chart, agent_count=agent_count)
+
+
 def build_bitcoin_market_system(days: str = "max", vs_currency: str = "usd", agent_count: int = 100) -> dict[str, Any]:
     market_chart = fetch_bitcoin_market_chart(days=days, vs_currency=vs_currency)
-    analysis = analyze_with_100_agents(market_chart, agent_count=agent_count)
+    analysis = analyze_with_agents(market_chart, agent_count=agent_count)
     return {
         "source": "CoinGecko",
         "days": days,
