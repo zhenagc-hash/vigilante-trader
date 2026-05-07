@@ -29,6 +29,18 @@ class BitcoinMarketSystemTests(unittest.TestCase):
         self.assertEqual(len(report["agents"]), 100)
         self.assertIn(report["consensus"], {"bullish", "bearish", "flat"})
 
+    def test_analyze_with_agents_handles_empty_prices(self):
+        report = vigilante_trader.analyze_with_agents({"prices": []})
+
+        self.assertEqual(report["agent_count"], 100)
+        self.assertEqual(len(report["agents"]), 100)
+        self.assertTrue(all(agent["average_price"] == 0.0 for agent in report["agents"]))
+        self.assertTrue(all(agent["trend"] == "flat" for agent in report["agents"]))
+
+    def test_analyze_with_agents_rejects_non_positive_agent_count(self):
+        with self.assertRaises(ValueError):
+            vigilante_trader.analyze_with_agents({"prices": [[1, 100.0]]}, agent_count=0)
+
     @patch("vigilante_trader.urlopen", side_effect=URLError("network down"))
     def test_fetch_bitcoin_market_chart_wraps_network_errors(self, _):
         with self.assertRaisesRegex(RuntimeError, "Failed to fetch Bitcoin market chart data"):

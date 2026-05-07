@@ -7,6 +7,7 @@ from urllib.parse import urlencode
 from urllib.request import urlopen
 
 COINGECKO_MARKET_CHART_URL = "https://api.coingecko.com/api/v3/coins/bitcoin/market_chart"
+COINGECKO_API_TIMEOUT = 30
 
 
 @dataclass(frozen=True)
@@ -19,7 +20,7 @@ class AgentAnalysis:
 def fetch_bitcoin_market_chart(days: str = "max", vs_currency: str = "usd") -> dict[str, Any]:
     query = urlencode({"vs_currency": vs_currency, "days": days})
     try:
-        with urlopen(f"{COINGECKO_MARKET_CHART_URL}?{query}", timeout=30) as response:
+        with urlopen(f"{COINGECKO_MARKET_CHART_URL}?{query}", timeout=COINGECKO_API_TIMEOUT) as response:
             return json.loads(response.read().decode("utf-8"))
     except URLError as error:
         raise RuntimeError("Failed to fetch Bitcoin market chart data from CoinGecko") from error
@@ -41,7 +42,7 @@ def _classify_trend(prices: list[float]) -> str:
 
 def _consensus_from_counts(trend_counts: dict[str, int]) -> str:
     tie_priority = ("bullish", "flat", "bearish")
-    return max(tie_priority, key=lambda trend: trend_counts[trend])
+    return max(tie_priority, key=lambda trend: trend_counts.get(trend, 0))
 
 
 def analyze_with_agents(market_chart: dict[str, Any], agent_count: int = 100) -> dict[str, Any]:
