@@ -83,6 +83,7 @@ def analyze_with_agents(market_chart: dict[str, Any], agent_count: int = 100) ->
         "trend_counts": trend_counts,
     }
 
+
 def build_bitcoin_market_system(days: str = "max", vs_currency: str = "usd", agent_count: int = 100) -> dict[str, Any]:
     market_chart = fetch_bitcoin_market_chart(days=days, vs_currency=vs_currency)
     analysis = analyze_with_agents(market_chart, agent_count=agent_count)
