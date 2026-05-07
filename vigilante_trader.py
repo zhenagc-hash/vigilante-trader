@@ -2,6 +2,7 @@ import json
 from dataclasses import dataclass
 from statistics import fmean
 from typing import Any
+from urllib.error import URLError
 from urllib.parse import urlencode
 from urllib.request import urlopen
 
@@ -17,8 +18,11 @@ class AgentAnalysis:
 
 def fetch_bitcoin_market_chart(days: str = "max", vs_currency: str = "usd") -> dict[str, Any]:
     query = urlencode({"vs_currency": vs_currency, "days": days})
-    with urlopen(f"{COINGECKO_MARKET_CHART_URL}?{query}", timeout=30) as response:
-        return json.loads(response.read().decode("utf-8"))
+    try:
+        with urlopen(f"{COINGECKO_MARKET_CHART_URL}?{query}", timeout=30) as response:
+            return json.loads(response.read().decode("utf-8"))
+    except URLError as error:
+        raise RuntimeError("Failed to fetch Bitcoin market chart data from CoinGecko") from error
 
 
 def _extract_prices(market_chart: dict[str, Any]) -> list[float]:
@@ -35,6 +39,11 @@ def _classify_trend(prices: list[float]) -> str:
     return "flat"
 
 
+def _consensus_from_counts(trend_counts: dict[str, int]) -> str:
+    priorities = {"bullish": 2, "flat": 1, "bearish": 0}
+    return max(trend_counts, key=lambda trend: (trend_counts[trend], priorities[trend]))
+
+
 def analyze_with_100_agents(market_chart: dict[str, Any], agent_count: int = 100) -> dict[str, Any]:
     if agent_count <= 0:
         raise ValueError("agent_count must be positive")
@@ -44,10 +53,15 @@ def analyze_with_100_agents(market_chart: dict[str, Any], agent_count: int = 100
         analyses = [AgentAnalysis(agent_id=i + 1, average_price=0.0, trend="flat") for i in range(agent_count)]
     else:
         analyses: list[AgentAnalysis] = []
-        chunk_size = max(1, len(prices) // agent_count)
+        chunk_size = len(prices) // agent_count
+        remainder = len(prices) % agent_count
+        offset = 0
         for i in range(agent_count):
-            start = i * chunk_size
-            chunk = prices[start : start + chunk_size] or [prices[-1]]
+            current_chunk_size = chunk_size + (1 if i < remainder else 0)
+            start = offset
+            end = start + current_chunk_size
+            chunk = prices[start:end] if current_chunk_size > 0 else [prices[-1]]
+            offset = end
             analyses.append(
                 AgentAnalysis(
                     agent_id=i + 1,
@@ -65,7 +79,7 @@ def analyze_with_100_agents(market_chart: dict[str, Any], agent_count: int = 100
     return {
         "agent_count": agent_count,
         "agents": [item.__dict__ for item in analyses],
-        "consensus": max(trend_counts, key=trend_counts.get),
+        "consensus": _consensus_from_counts(trend_counts),
         "trend_counts": trend_counts,
     }
 
@@ -83,4 +97,7 @@ def build_bitcoin_market_system(days: str = "max", vs_currency: str = "usd", age
 
 
 if __name__ == "__main__":
-    print(json.dumps(build_bitcoin_market_system(), indent=2))
+    try:
+        print(json.dumps(build_bitcoin_market_system(), indent=2))
+    except RuntimeError as error:
+        print(json.dumps({"error": str(error)}, indent=2))

@@ -1,5 +1,6 @@
 import json
 import unittest
+from urllib.error import URLError
 from unittest.mock import patch
 
 import vigilante_trader
@@ -27,6 +28,11 @@ class BitcoinMarketSystemTests(unittest.TestCase):
         self.assertEqual(report["agent_count"], 100)
         self.assertEqual(len(report["agents"]), 100)
         self.assertIn(report["consensus"], {"bullish", "bearish", "flat"})
+
+    @patch("vigilante_trader.urlopen", side_effect=URLError("network down"))
+    def test_fetch_bitcoin_market_chart_wraps_network_errors(self, _):
+        with self.assertRaisesRegex(RuntimeError, "Failed to fetch Bitcoin market chart data"):
+            vigilante_trader.fetch_bitcoin_market_chart()
 
 
 if __name__ == "__main__":
