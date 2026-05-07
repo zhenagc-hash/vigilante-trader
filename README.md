@@ -1,6 +1,6 @@
 # vigilante-trader
 
-Trade insight system with 100 AI-style market agents.
+Trading insight system with 100 AI-style market agents.
 
 ## Bitcoin market chart analysis system
 

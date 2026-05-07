@@ -40,8 +40,8 @@ def _classify_trend(prices: list[float]) -> str:
 
 
 def _consensus_from_counts(trend_counts: dict[str, int]) -> str:
-    priorities = {"bullish": 2, "flat": 1, "bearish": 0}
-    return max(trend_counts, key=lambda trend: (trend_counts[trend], priorities[trend]))
+    tie_priority = ("bullish", "flat", "bearish")
+    return max(tie_priority, key=lambda trend: trend_counts[trend])
 
 
 def analyze_with_agents(market_chart: dict[str, Any], agent_count: int = 100) -> dict[str, Any]:
@@ -52,20 +52,16 @@ def analyze_with_agents(market_chart: dict[str, Any], agent_count: int = 100) ->
     if not prices:
         analyses = [AgentAnalysis(agent_id=i + 1, average_price=0.0, trend="flat") for i in range(agent_count)]
     else:
-        analyses: list[AgentAnalysis] = []
-        chunk_size = len(prices) // agent_count
-        remainder = len(prices) % agent_count
-        offset = 0
-        for i in range(agent_count):
-            current_chunk_size = chunk_size + (1 if i < remainder else 0)
-            start = offset
-            end = start + current_chunk_size
-            chunk = prices[start:end] if current_chunk_size > 0 else [prices[-1]]
-            offset = end
+        analyses = []
+        chunks: list[list[float]] = [[] for _ in range(agent_count)]
+        for index, price in enumerate(prices):
+            chunks[index % agent_count].append(price)
+
+        for i, chunk in enumerate(chunks):
             analyses.append(
                 AgentAnalysis(
                     agent_id=i + 1,
-                    average_price=round(fmean(chunk), 2),
+                    average_price=round(fmean(chunk), 2) if chunk else 0.0,
                     trend=_classify_trend(chunk),
                 )
             )
