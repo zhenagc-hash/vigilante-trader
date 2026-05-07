@@ -20,10 +20,10 @@ class BitcoinMarketSystemTests(unittest.TestCase):
         self.assertIn("days=30", called_url)
         self.assertIn("vs_currency=usd", called_url)
 
-    def test_analyze_with_100_agents_returns_full_agent_set(self):
+    def test_analyze_with_agents_returns_full_agent_set(self):
         prices = {"prices": [[i, float(100 + i)] for i in range(10)]}
 
-        report = vigilante_trader.analyze_with_100_agents(prices)
+        report = vigilante_trader.analyze_with_agents(prices)
 
         self.assertEqual(report["agent_count"], 100)
         self.assertEqual(len(report["agents"]), 100)
